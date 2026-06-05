@@ -1,0 +1,82 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Model checkpoints and weights
+*.pth
+*.pt
+checkpoint/
+checkpoints/
+models/
+weights/
+
+# Training logs and outputs
+logs/
+outputs/
+runs/
+*.log
+
+# Data files (if too large to commit)
+data/
+*.csv
+*.npy
+*.npz
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Environment files
+.env
+.env.local
+*.key
+*.pem
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
