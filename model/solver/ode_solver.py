@@ -37,6 +37,46 @@ def _euler_integrate(func, x_init: Tensor, time_grid: Tensor) -> Tensor:
     return torch.stack(states)
 
 
+def _implicit_euler_integrate(
+    func, x_init: Tensor, time_grid: Tensor, max_iters: int = 5, tol: float = 1e-4
+) -> Tensor:
+    r"""Implicit Euler integration with fixed-point iteration.
+    
+    Solves: x_{n+1} = x_n + dt * f(t_{n+1}, x_{n+1})
+    using fixed-point iteration: x^{k+1} = x_n + dt * f(t_{n+1}, x^k)
+    
+    Args:
+        func: velocity function f(t, x)
+        x_init: initial state
+        time_grid: time points
+        max_iters: max iterations for implicit equation solving
+        tol: convergence tolerance
+    
+    Returns:
+        states at all time points
+    """
+    states = [x_init]
+    for i in range(time_grid.shape[0] - 1):
+        t0 = time_grid[i]
+        t1 = time_grid[i + 1]
+        dt = t1 - t0
+        x0 = states[-1]
+        
+        # Fixed-point iteration for implicit equation
+        x_next = x0 + dt * func(t0, x0)  # Start with explicit Euler guess
+        for _ in range(max_iters):
+            x_prev = x_next
+            x_next = x0 + dt * func(t1, x_prev)
+            
+            # Check convergence
+            residual = torch.norm(x_next - x_prev) / (torch.norm(x_prev) + 1e-8)
+            if residual < tol:
+                break
+        
+        states.append(x_next)
+    return torch.stack(states)
+
+
 class ODESolver(Solver):
     """Solver for ordinary differential equations using a velocity model."""
 
@@ -61,7 +101,7 @@ class ODESolver(Solver):
         Args:
             x_init (Tensor): initial state, shape [batch_size, ...].
             step_size (Optional[float]): fixed step size for fixed-step solvers.
-            method (str): numerical method supported by torchdiffeq.
+            method (str): numerical method ('euler', 'implicit_euler', or others supported by torchdiffeq).
             atol (float): absolute tolerance for adaptive solvers.
             rtol (float): relative tolerance for adaptive solvers.
             time_grid (Tensor): time points for integration.
@@ -77,7 +117,13 @@ class ODESolver(Solver):
         def ode_func(t, x):
             return self.velocity_model(x=x, t=t, **model_extras)
 
-        if odeint is not None:
+        # Handle implicit_euler specially (not supported by torchdiffeq)
+        if method == "implicit_euler":
+            with torch.set_grad_enabled(enable_grad):
+                sol = _implicit_euler_integrate(
+                    ode_func, x_init, time_grid, max_iters=5, tol=1e-4
+                )
+        elif odeint is not None:
             ode_opts = {"step_size": step_size} if step_size is not None else {}
             with torch.set_grad_enabled(enable_grad):
                 sol = odeint(
@@ -90,6 +136,7 @@ class ODESolver(Solver):
                     rtol=rtol,
                 )
         else:
+            # Fallback to explicit Euler when torchdiffeq is not available
             with torch.set_grad_enabled(enable_grad):
                 sol = _euler_integrate(ode_func, x_init, time_grid)
 
